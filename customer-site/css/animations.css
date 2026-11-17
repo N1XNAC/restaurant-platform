@@ -1,0 +1,111 @@
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0.94;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.25);
+  }
+  75% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes floatingPulse {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.06) translateY(-2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes checkDraw {
+  from {
+    stroke-dashoffset: 64;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes circleExpand {
+  from {
+    transform: scale(0.9);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseSoft {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-page-enter {
+  animation: fadeSlideUp 180ms var(--ease-editorial) both;
+}
+
+.animate-badge-pop {
+  animation: badgePop 320ms var(--ease-organic) both;
+}
+
+.animate-cart-bounce {
+  animation: floatingPulse 340ms var(--ease-organic) both;
+}
+
+.animate-confirm-circle {
+  animation: circleExpand 220ms var(--ease-editorial) both;
+}
+
+.animate-confirm-check {
+  stroke-dasharray: 64;
+  stroke-dashoffset: 64;
+  animation: checkDraw 300ms var(--ease-editorial) 40ms forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  .animate-confirm-check {
+    stroke-dashoffset: 0;
+  }
+}

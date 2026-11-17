@@ -3,6 +3,14 @@ dist/
 .env
 *.db
 *.db-journal
-uploads/
+# Runtime uploads stay out of git, except the seeded demo dish photos that
+# `db:seed` references through /uploads/dish-*.webp
+uploads/*
+!uploads/dish-*.webp
+!uploads/dish-*.jpg
+!backend/uploads/
+backend/uploads/*
+!backend/uploads/dish-*.webp
+!backend/uploads/dish-*.jpg
 coverage/
 .DS_Store

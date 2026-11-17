@@ -121,6 +121,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
     let grossSalesCents = 0;
     let discountsCents = 0;
     let taxesCollectedCents = 0;
+    let serviceChargesCents = 0;
     let totalDishesSold = 0;
     let validOrdersCount = 0;
 
@@ -141,6 +142,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
         grossSalesCents += order.subtotalCents;
         discountsCents += order.discountCents;
         taxesCollectedCents += order.taxCents;
+        serviceChargesCents += order.serviceChargeCents;
 
         const hourBucket = hourlyMap.get(order.createdAt.getHours());
         if (hourBucket) {
@@ -221,6 +223,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
         refundsCents,
         netSalesCents,
         taxesCollectedCents,
+        serviceChargesCents,
         cogsCents,
         operatingExpensesCents,
         estimatedGrossProfitCents,

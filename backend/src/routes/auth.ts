@@ -13,12 +13,19 @@ const loginSchema = z.object({
 
 const updateRestaurantSchema = z.object({
   name: z.string().min(2).max(120).optional(),
+  tagline: z.string().max(160).nullable().optional(),
+  cuisine: z.string().max(120).nullable().optional(),
+  hours: z.string().max(120).nullable().optional(),
   taxRateBps: z.number().int().min(0).max(5000).optional(),
+  serviceChargeBps: z.number().int().min(0).max(5000).optional(),
   currency: z.string().min(3).max(5).optional(),
   address: z.string().max(300).nullable().optional(),
   phone: z.string().max(40).nullable().optional(),
   email: z.string().email().nullable().optional(),
   timezone: z.string().min(1).max(60).optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  geofenceRadiusMeters: z.number().int().min(10).max(5000).optional(),
 });
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -88,6 +95,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           name: staff.restaurant.name,
           slug: staff.restaurant.slug,
           taxRateBps: staff.restaurant.taxRateBps,
+          serviceChargeBps: staff.restaurant.serviceChargeBps,
           currency: staff.restaurant.currency,
         },
       };
@@ -119,12 +127,19 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         id: true,
         name: true,
         slug: true,
+        tagline: true,
+        cuisine: true,
+        hours: true,
         taxRateBps: true,
+        serviceChargeBps: true,
         currency: true,
         address: true,
         phone: true,
         email: true,
         timezone: true,
+        latitude: true,
+        longitude: true,
+        geofenceRadiusMeters: true,
       },
     });
 

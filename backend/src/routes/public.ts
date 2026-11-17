@@ -1,9 +1,9 @@
-import crypto from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { BadRequestError, NotFoundError } from '../lib/errors.js';
 import { emitRealtimeEvent } from '../lib/realtime.js';
+import { createCustomerOrder, type PreparedLine } from '../lib/orderService.js';
 
 const createPublicOrderSchema = z.object({
   tableId: z.string().min(1),
@@ -155,19 +155,7 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
       });
       const itemMap = new Map(dbItems.map((i) => [i.id, i]));
 
-      let subtotalCents = 0;
-      const preparedItems: Array<{
-        menuItemId: string;
-        itemNameSnapshot: string;
-        unitPriceCents: number;
-        quantity: number;
-        variationsSnapshotJson: string;
-        extrasSnapshotJson: string;
-        extrasTotalCents: number;
-        lineTotalCents: number;
-        specialInstructions: string | null;
-        prepTimeMinutes: number;
-      }> = [];
+      const preparedItems: PreparedLine[] = [];
 
       for (const reqItem of body.items) {
         const dbItem = itemMap.get(reqItem.menuItemId);
@@ -201,9 +189,6 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
           selectedExtras.push({ id: extra.id, name: extra.name, priceCents: extra.priceCents });
         }
 
-        const lineTotalCents = (unitPriceCents + extrasTotalCents) * reqItem.quantity;
-        subtotalCents += lineTotalCents;
-
         preparedItems.push({
           menuItemId: dbItem.id,
           itemNameSnapshot: dbItem.name,
@@ -212,76 +197,24 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
           variationsSnapshotJson: JSON.stringify(selectedVariations),
           extrasSnapshotJson: JSON.stringify(selectedExtras),
           extrasTotalCents,
-          lineTotalCents,
+          lineTotalCents: (unitPriceCents + extrasTotalCents) * reqItem.quantity,
           specialInstructions: reqItem.specialInstructions ?? null,
           prepTimeMinutes: dbItem.prepTimeMinutes,
         });
       }
 
-      const taxCents = Math.round((subtotalCents * restaurant.taxRateBps) / 10000);
-      const totalCents = subtotalCents + taxCents;
-      const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-
-      const result = await prisma.$transaction(async (tx) => {
-        const createdOrder = await tx.order.create({
-          data: {
-            restaurantId: restaurant.id,
-            tableId: table.id,
-            orderNumber,
-            idempotencyKey,
-            status: 'NEW',
-            paymentStatus: 'UNPAID',
-            subtotalCents,
-            taxCents,
-            discountCents: 0,
-            totalCents,
-            notes: body.notes ?? null,
-            items: { create: preparedItems },
-            statusHistory: {
-              create: {
-                fromStatus: null,
-                toStatus: 'NEW',
-                reason: 'Customer submitted order',
-              },
-            },
-          },
-          include: {
-            table: { select: { id: true, tableNumber: true, label: true } },
-            items: true,
-          },
-        });
-
-        let updatedTable = table;
-        if (table.status === 'AVAILABLE' || table.status === 'RESERVED') {
-          updatedTable = await tx.restaurantTable.update({
-            where: { id: table.id },
-            data: { status: 'OCCUPIED' },
-          });
-        }
-
-        await tx.notification.create({
-          data: {
-            restaurantId: restaurant.id,
-            type: 'NEW_ORDER',
-            title: `New Order ${createdOrder.orderNumber}`,
-            message: `Table ${table.tableNumber} placed an order (${preparedItems.length} item line(s))`,
-            entityType: 'Order',
-            entityId: createdOrder.id,
-            dedupeKey: `order:${createdOrder.id}:NEW`,
-          },
-        });
-
-        return { createdOrder, updatedTable };
+      const result = await createCustomerOrder({
+        restaurant,
+        tableId: table.id,
+        tableNumber: table.tableNumber,
+        lines: preparedItems,
+        notes: body.notes ?? null,
+        idempotencyKey,
       });
 
-      await emitRealtimeEvent(restaurant.id, 'order.created', { order: result.createdOrder });
-      await emitRealtimeEvent(restaurant.id, 'table.updated', { table: result.updatedTable });
-      await emitRealtimeEvent(restaurant.id, 'notification.created', {
-        type: 'NEW_ORDER',
-        orderId: result.createdOrder.id,
-      });
-
-      return reply.status(201).send({ order: result.createdOrder, deduplicated: false });
+      return reply
+        .status(result.deduplicated ? 200 : 201)
+        .send({ order: result.order, deduplicated: result.deduplicated });
     }
   );
 

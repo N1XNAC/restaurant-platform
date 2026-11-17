@@ -24,6 +24,7 @@ interface OrderRow {
   paymentStatus: string;
   subtotalCents: number;
   taxCents: number;
+  serviceChargeCents: number;
   discountCents: number;
   totalCents: number;
   notes: string | null;
@@ -235,6 +236,12 @@ export function OrdersPage() {
                     <span>Tax</span>
                     <span>{formatMoney(order.taxCents, currency)}</span>
                   </div>
+                  {order.serviceChargeCents > 0 && (
+                    <div className="flex justify-between">
+                      <span>Service charge</span>
+                      <span>{formatMoney(order.serviceChargeCents, currency)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm font-semibold text-slate-900 pt-1">
                     <span>Total</span>
                     <span>{formatMoney(order.totalCents, currency)}</span>

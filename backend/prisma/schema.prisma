@@ -8,17 +8,24 @@ datasource db {
 }
 
 model Restaurant {
-  id         String   @id @default(cuid())
-  name       String
-  slug       String   @unique
-  taxRateBps Int      @default(500) // 500 = 5.00%
-  currency   String   @default("USD")
-  address    String?
-  phone      String?
-  email      String?
-  timezone   String   @default("UTC")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  name                 String
+  slug                 String   @unique
+  tagline              String?
+  cuisine              String?
+  hours                String?
+  taxRateBps           Int      @default(500) // 500 = 5.00%
+  serviceChargeBps     Int      @default(0) // 500 = 5.00%
+  currency             String   @default("USD")
+  address              String?
+  phone                String?
+  email                String?
+  timezone             String   @default("UTC")
+  latitude             Float?
+  longitude            Float?
+  geofenceRadiusMeters Int      @default(250)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   staffUsers            StaffUser[]
   tables                RestaurantTable[]
@@ -34,6 +41,8 @@ model Restaurant {
   notifications         Notification[]
   auditLogs             AuditLog[]
   realtimeEvents        RealtimeEvent[]
+  tableTokens           TableToken[]
+  customerSessions      CustomerSession[]
 }
 
 model StaffUser {
@@ -92,9 +101,46 @@ model RestaurantTable {
   restaurant     Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   assignedWaiter StaffUser? @relation("AssignedWaiter", fields: [assignedWaiterId], references: [id], onDelete: SetNull)
   orders         Order[]
+  tableTokens    TableToken[]
 
   @@unique([restaurantId, tableNumber])
   @@index([restaurantId, status, isActive])
+}
+
+// QR / NFC token printed on a table placard. Validated by the customer site
+// before a table session is created.
+model TableToken {
+  id           String   @id @default(cuid())
+  restaurantId String
+  tableId      String
+  token        String   @unique
+  entryMethod  String   @default("QR") // QR | NFC
+  placardPin   String
+  status       String   @default("active") // active | expired | revoked
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  table      RestaurantTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, status])
+}
+
+// Server-side customer table session. Binds a table to an HMAC signature so the
+// browser can never spoof restaurantId / tableId when placing an order.
+model CustomerSession {
+  id               String   @id @default(cuid())
+  restaurantId     String
+  tableId          String
+  sessionSignature String
+  entryMethod      String   @default("QR")
+  locationStatus   String   @default("unverified")
+  challengeVerified Boolean @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model MenuCategory {
@@ -175,9 +221,12 @@ model Order {
   paymentStatus       String    @default("UNPAID") // UNPAID | PARTIALLY_PAID | PAID | PARTIALLY_REFUNDED | REFUNDED
   subtotalCents       Int
   taxCents            Int
+  serviceChargeCents  Int       @default(0)
   discountCents       Int       @default(0)
   totalCents          Int
   notes               String?
+  orderMode           String    @default("table_cart") // table_cart | only_this
+  customerSessionId   String?   // customer table session that placed the order
   rejectionReason     String?
   acceptedAt          DateTime?
   preparingAt         DateTime?

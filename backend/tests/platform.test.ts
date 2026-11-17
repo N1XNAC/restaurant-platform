@@ -118,10 +118,18 @@ describe('Restaurant Platform End-to-End API Tests', () => {
     const order1 = res1.json().order;
     createdOrderId = order1.id;
 
-    // 2 * 1650 = 3300 subtotal, 8% tax = 264, total = 3564
+    // Server-calculated totals: 2 * 1650 = 3300 subtotal, then tax + service
+    // charge taken from the restaurant's live configuration (never hardcoded).
+    const restaurant = await prisma.restaurant.findUniqueOrThrow({
+      where: { slug: 'bistro-lumiere' },
+    });
+    const expectedTax = Math.round((3300 * restaurant.taxRateBps) / 10000);
+    const expectedService = Math.round((3300 * restaurant.serviceChargeBps) / 10000);
+
     expect(order1.subtotalCents).toBe(3300);
-    expect(order1.taxCents).toBe(264);
-    expect(order1.totalCents).toBe(3564);
+    expect(order1.taxCents).toBe(expectedTax);
+    expect(order1.serviceChargeCents).toBe(expectedService);
+    expect(order1.totalCents).toBe(3300 + expectedTax + expectedService);
     expect(order1.status).toBe('NEW');
 
     // Retry with same Idempotency-Key
@@ -237,11 +245,15 @@ describe('Restaurant Platform End-to-End API Tests', () => {
   });
 
   it('handles payments, partial refunds, and rejects over-refunding', async () => {
+    const created = await prisma.order.findUniqueOrThrow({
+      where: { id: createdOrderId },
+    });
+
     const payRes = await app.inject({
       method: 'POST',
       url: `/api/v1/orders/${createdOrderId}/payments`,
       headers: { authorization: `Bearer ${waiterToken}` },
-      payload: { amountCents: 3564, method: 'CARD' },
+      payload: { amountCents: created.totalCents, method: 'CARD' },
     });
     expect(payRes.statusCode).toBe(201);
     expect(payRes.json().updatedOrder.paymentStatus).toBe('PAID');

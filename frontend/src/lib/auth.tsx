@@ -15,12 +15,19 @@ export interface RestaurantInfo {
   id: string;
   name: string;
   slug: string;
+  tagline?: string | null;
+  cuisine?: string | null;
+  hours?: string | null;
   taxRateBps: number;
+  serviceChargeBps: number;
   currency: string;
   address?: string | null;
   phone?: string | null;
   email?: string | null;
   timezone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  geofenceRadiusMeters?: number;
 }
 
 interface AuthContextValue {

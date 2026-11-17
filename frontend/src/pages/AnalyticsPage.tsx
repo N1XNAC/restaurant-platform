@@ -12,6 +12,7 @@ interface AnalyticsSummary {
     refundsCents: number;
     netSalesCents: number;
     taxesCollectedCents: number;
+    serviceChargesCents: number;
     cogsCents: number;
     operatingExpensesCents: number;
     estimatedGrossProfitCents: number;
@@ -109,6 +110,7 @@ export function AnalyticsPage() {
           <Stat label="Refunds" value={formatMoney(k.refundsCents, currency)} />
           <Stat label="Net Sales" value={formatMoney(k.netSalesCents, currency)} />
           <Stat label="Taxes Collected" value={formatMoney(k.taxesCollectedCents, currency)} />
+          <Stat label="Service Charges" value={formatMoney(k.serviceChargesCents, currency)} />
           <Stat label="Cost of Goods (COGS)" value={formatMoney(k.cogsCents, currency)} />
           <Stat label="Operating Expenses" value={formatMoney(k.operatingExpensesCents, currency)} />
           <Stat label="Est. Gross Profit" value={formatMoney(k.estimatedGrossProfitCents, currency)} />

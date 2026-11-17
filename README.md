@@ -1,16 +1,22 @@
 # Restaurant Management Platform
 
-Two-sided restaurant ordering platform. This repository contains the **shared backend** and the
-**restaurant operations website** (dashboard, kitchen, tables, menu, inventory, analytics, staff).
-The customer-facing website is a separate application that talks to the same backend over the
-documented API contract in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
+Two-sided restaurant ordering platform. This repository contains the **shared backend**, the
+**restaurant operations website** (dashboard, kitchen, tables, menu, inventory, analytics, staff),
+and the **customer-facing ordering website** that was built separately against the documented
+contract in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md). Both websites run on one database, so a
+guest order appears in the restaurant dashboard in real time and status changes flow back to the
+guest.
 
 ```
 restaurant-platform/
 ├── backend/        Fastify + TypeScript + Prisma  (shared API, REST + WebSocket)
+│                   also serves the customer website and uploaded images
 ├── frontend/       React 19 + Vite + Tailwind v4  (restaurant operations website)
+├── customer-site/  Vanilla HTML/CSS/JS customer ordering app (served by the backend at /)
+├── reference/
+│   └── maison-verbena/   the customer app's original standalone Express server, kept for reference
 ├── docs/
-│   └── API_CONTRACT.md   <- share this with the customer-side developer
+│   └── API_CONTRACT.md   <- both API surfaces, share with integrators
 └── package.json    convenience scripts
 ```
 
@@ -55,7 +61,23 @@ npm run dev            # http://localhost:5173
 
 Vite proxies `/api` and `/uploads` (including WebSocket upgrades) to `localhost:4000`.
 
-### 3. Or run both from the repo root
+### 3. Customer website
+
+The backend serves `customer-site/` from its own origin:
+
+```
+http://localhost:4000/            home
+http://localhost:4000/menu.html   full menu
+http://localhost:4000/cart.html   table cart
+```
+
+Its relative `/api/...` calls therefore hit the same server, with no CORS setup. To host the
+customer site separately instead, set its `<meta name="api-base-url">` to the backend origin and add
+that origin to `CORS_ORIGIN`. The customer app binds a table through a QR/NFC placard — the demo
+placards are listed in [docs/API_CONTRACT.md](docs/API_CONTRACT.md#76-running-the-customer-website)
+(`QR_MV_T08_VALID`, PIN `4082`, …).
+
+### 4. Or run both from the repo root
 
 ```bash
 npm run dev:backend
@@ -80,15 +102,21 @@ Password for all: `Password123!`
 
 ## Try the live order flow end to end
 
+**Customer side → restaurant side**
+
+1. Open <http://localhost:4000/>. The app binds table **T-08** from the demo placard.
+2. Add a dish (with options/extras) to the table cart and place the order.
+3. The ticket appears instantly on the restaurant **Live Orders** board, in the **Kitchen Display**,
+   and the notification bell shows `NEW_ORDER` — delivered over the WebSocket, not by polling.
+4. Advance it in the restaurant app: Accept → Start Prep → Mark Ready → Mark Served → Complete.
+   The customer confirmation page shows the same progression (`RECEIVED → PREPARING → READY → SERVED`)
+   and the cancel button disappears once the kitchen starts.
+
+**Restaurant side self-test**
+
 1. Log in as `waiter@bistro.local` at <http://localhost:5173>.
-2. Open **Live Orders** and click **Place Test Customer Order**. This hits the *public* customer
-   endpoint (`POST /api/v1/public/restaurants/:slug/orders`) — exactly the endpoint the customer
-   website will use.
-3. The order appears in real time on the **Live Orders** board, in the **Kitchen Display**, and the
-   notification bell shows a `NEW_ORDER` notification.
-4. Advance it: Accept → Start Prep → Mark Ready → Mark Served → Complete Order.
-5. Watch **Inventory** — dough/tomato/mozzarella stock drops exactly once when the order is
-   accepted. **Analytics** reflects the sale immediately.
+2. Open **Live Orders** and click **Place Test Customer Order** (this uses the public API).
+3. Accept it and watch **Inventory** drop exactly once, and **Analytics** update immediately.
 
 ---
 
@@ -105,7 +133,7 @@ Password for all: `Password123!`
 | Sales & profit analytics (P&L, expenses, CSV export) | `frontend/src/pages/AnalyticsPage.tsx` |
 | Reviews + responses | `frontend/src/pages/ReviewsPage.tsx` |
 | Staff management + audit log | `frontend/src/pages/StaffPage.tsx` |
-| Restaurant settings (tax rate, currency) | `frontend/src/pages/SettingsPage.tsx` |
+| Restaurant settings (tagline, hours, tax rate, service charge, currency) | `frontend/src/pages/SettingsPage.tsx` |
 
 ---
 
@@ -120,13 +148,19 @@ prevention, status-transition validation, role-based permission matrix, restaura
 single-time inventory deduction, payment + partial/full refund handling, and exclusion of
 cancelled orders from sales analytics.
 
+`tests/customer-compat.test.ts` additionally exercises the customer website contract end to end:
+placard validation and HMAC-signed sessions, geofence + placard PIN challenge, menu vocabulary and
+dollar pricing, server-side price tampering rejection, idempotency, ownership-scoped cancellation,
+status mapping in both directions, and static hosting of `customer-site/`.
+
 ---
 
 ## Production notes
 
 * Change `DATABASE_URL` in `backend/.env` to a PostgreSQL connection string and set
   `provider = "postgresql"` in `backend/prisma/schema.prisma`.
-* Set a strong `JWT_SECRET` and `COOKIE_SECRET`.
+* Set a strong `JWT_SECRET`, `COOKIE_SECRET` and `SESSION_HMAC_SECRET` (used to sign customer table sessions).
 * Set `CORS_ORIGIN` to the exact origins of the customer website.
+* Set `INTEGRATION_API_KEY` if an external management system uses `/api/integration/*`.
 * Serve uploaded images from object storage rather than the local `uploads/` directory.
 * Run the API behind TLS so the `access_token` cookie can use `Secure`.

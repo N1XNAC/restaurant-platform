@@ -14,6 +14,7 @@ import { realtimeRoutes } from './lib/realtime.js';
 import { tableRoutes } from './routes/tables.js';
 import { menuRoutes } from './routes/menu.js';
 import { publicRoutes } from './routes/public.js';
+import { customerCompatRoutes } from './routes/customerCompat.js';
 import { orderRoutes } from './routes/orders.js';
 import { inventoryRoutes } from './routes/inventory.js';
 import { analyticsRoutes } from './routes/analytics.js';
@@ -83,6 +84,24 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(inventoryRoutes);
   await app.register(analyticsRoutes);
   await app.register(operationsRoutes);
+  await app.register(customerCompatRoutes);
+
+  // Serve the customer-facing website from the same origin as the API so its
+  // relative "/api/*" calls work without CORS and its relative asset paths
+  // resolve unchanged. The restaurant app runs separately (see frontend/).
+  const customerSiteDir =
+    process.env.CUSTOMER_SITE_DIR ??
+    path.resolve(process.cwd(), '..', 'customer-site');
+  if (fs.existsSync(customerSiteDir)) {
+    await app.register(fastifyStatic, {
+      root: customerSiteDir,
+      prefix: '/',
+      decorateReply: false,
+      index: ['index.html'],
+    });
+  } else {
+    app.log.warn(`Customer site directory not found: ${customerSiteDir}`);
+  }
 
   return app;
 }
