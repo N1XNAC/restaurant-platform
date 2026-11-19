@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Archive } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import { mediaUrl } from '../lib/endpoints';
 import { useAuth } from '../lib/auth';
 import { formatMoney } from '../lib/format';
 
@@ -170,7 +171,7 @@ export function MenuPage() {
               <div>
                 {item.imageUrl && (
                   <img
-                    src={item.imageUrl}
+                    src={mediaUrl(item.imageUrl)}
                     alt={item.name}
                     className="w-full h-36 object-cover rounded-lg mb-3"
                   />

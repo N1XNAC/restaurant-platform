@@ -27,15 +27,34 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? false,
+    // Behind a reverse proxy (Fly/Render/Nginx) this makes request.protocol,
+    // request.ip and rate limiting reflect the real client.
+    trustProxy: process.env.TRUST_PROXY === 'true',
   });
 
   const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
     .split(',')
-    .map((s) => s.trim())
+    .map((s) => s.trim().replace(/\/+$/, ''))
     .filter(Boolean);
+  const corsOriginRegex = process.env.CORS_ORIGIN_REGEX
+    ? new RegExp(process.env.CORS_ORIGIN_REGEX)
+    : null;
 
   await app.register(cors, {
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // No Origin header: server-to-server calls, curl, health checks.
+      if (!origin) return callback(null, true);
+      const normalized = origin.replace(/\/+$/, '');
+      if (
+        corsOrigins.includes('*') ||
+        corsOrigins.includes(normalized) ||
+        (corsOriginRegex ? corsOriginRegex.test(normalized) : false)
+      ) {
+        return callback(null, true);
+      }
+      // Disallowed origins get no CORS headers instead of a 500.
+      return callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
@@ -59,7 +78,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     },
   });
 
-  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  const uploadsDir =
+    process.env.UPLOADS_DIR ?? path.resolve(process.cwd(), 'uploads');
   fs.mkdirSync(uploadsDir, { recursive: true });
   await app.register(fastifyStatic, {
     root: uploadsDir,
@@ -88,18 +108,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Serve the customer-facing website from the same origin as the API so its
   // relative "/api/*" calls work without CORS and its relative asset paths
-  // resolve unchanged. The restaurant app runs separately (see frontend/).
+  // resolve unchanged. Set SERVE_CUSTOMER_SITE=false when the customer site is
+  // hosted separately (e.g. a Netlify site pointing at this backend).
+  const serveCustomerSite = process.env.SERVE_CUSTOMER_SITE !== 'false';
   const customerSiteDir =
     process.env.CUSTOMER_SITE_DIR ??
     path.resolve(process.cwd(), '..', 'customer-site');
-  if (fs.existsSync(customerSiteDir)) {
+  if (serveCustomerSite && fs.existsSync(customerSiteDir)) {
     await app.register(fastifyStatic, {
       root: customerSiteDir,
       prefix: '/',
       decorateReply: false,
       index: ['index.html'],
     });
-  } else {
+  } else if (serveCustomerSite) {
     app.log.warn(`Customer site directory not found: ${customerSiteDir}`);
   }
 

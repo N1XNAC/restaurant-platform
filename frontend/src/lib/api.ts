@@ -1,3 +1,5 @@
+import { apiUrl } from './endpoints';
+
 const TOKEN_KEY = 'lumiere_access_token';
 
 export function getStoredToken(): string | null {
@@ -29,7 +31,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     headers.set('Content-Type', 'application/json');
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     ...init,
     headers,
     credentials: 'include',

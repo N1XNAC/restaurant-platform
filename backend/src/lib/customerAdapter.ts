@@ -115,6 +115,28 @@ export function centsToDollars(cents: number): number {
   return Math.round(cents) / 100;
 }
 
+/**
+ * Turn a stored origin-relative upload path into an absolute URL.
+ *
+ * The customer app resolves image paths against its own origin, which breaks
+ * when the site and the API are hosted on different hosts. Returning absolute
+ * URLs keeps the same database values working in both same-origin and split
+ * deployments.
+ */
+export function resolveAssetUrl(
+  imagePath: string | null | undefined,
+  assetBaseUrl?: string
+): string {
+  if (!imagePath) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(imagePath) || imagePath.startsWith('//')) {
+    return imagePath;
+  }
+  if (!assetBaseUrl) return imagePath;
+  return `${assetBaseUrl.replace(/\/+$/, '')}${
+    imagePath.startsWith('/') ? imagePath : `/${imagePath}`
+  }`;
+}
+
 // ---------------------------------------------------------------------------
 // Restaurant
 // ---------------------------------------------------------------------------
@@ -197,7 +219,10 @@ export interface CustomerMenuItem {
 export const VARIATIONS_GROUP_ID = 'variations';
 export const EXTRAS_GROUP_ID = 'extras';
 
-export function toCustomerMenuItem(item: MenuItemWithOptions): CustomerMenuItem {
+export function toCustomerMenuItem(
+  item: MenuItemWithOptions,
+  assetBaseUrl?: string
+): CustomerMenuItem {
   const customizations: CustomerCustomizationGroup[] = [];
 
   const variations = (item.variations ?? []).filter((v) => v.isAvailable);
@@ -242,7 +267,7 @@ export function toCustomerMenuItem(item: MenuItemWithOptions): CustomerMenuItem 
     price: centsToDollars(item.priceCents),
     // Empty image => the customer app renders its house photo instead of a
     // broken <picture> element.
-    image: item.imageUrl ?? '',
+    image: resolveAssetUrl(item.imageUrl, assetBaseUrl),
     fallbackImage: '',
     isAvailable: item.isAvailable && !item.isArchived,
     dietary: toCustomerDietary(item.dietaryType),
@@ -373,6 +398,7 @@ export function toCustomerOrder(
     restaurantName: string;
     locationStatus?: CustomerLocationStatus;
     estimatedMinutes?: number;
+    assetBaseUrl?: string;
   }
 ): CustomerOrder {
   const items: CustomerOrderLine[] = order.items.map((item) => {
@@ -409,7 +435,7 @@ export function toCustomerOrder(
     return {
       itemId: item.menuItemId ?? '',
       name: item.itemNameSnapshot,
-      image: item.menuItem?.imageUrl ?? '',
+      image: resolveAssetUrl(item.menuItem?.imageUrl, ctx.assetBaseUrl),
       unitPrice: centsToDollars(effectiveUnitCents),
       quantity: item.quantity,
       lineTotal: centsToDollars(item.lineTotalCents),

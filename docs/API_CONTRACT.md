@@ -372,9 +372,18 @@ Customer endpoints use the customer envelope:
 ### 7.6 Running the customer website
 - **Same origin (default):** start the backend and open <http://localhost:4000/>. The app is served
   statically and its relative `/api/...` calls hit the same server.
-- **Separately hosted:** host `customer-site/` on any static host and set its
-  `<meta name="api-base-url" content="http://localhost:4000">` (or `window.__MV_CONFIG__.apiBaseUrl`).
-  Add that origin to `CORS_ORIGIN` in `backend/.env`.
+- **Separately hosted (Netlify and a separate API host):** host `customer-site/` on its own site,
+  deploy `frontend/` on another, and set the API origin at build time. See
+  [DEPLOYMENT.md](DEPLOYMENT.md). The customer build writes
+  `window.__MV_CONFIG__ = { apiBaseUrl: "https://api.example.com" }` before `js/config.js`, which is
+  the runtime override the app already supports. No code changes are needed.
+- **Separately hosted (manual):** host `customer-site/` on any static host, set its
+  `<meta name="api-base-url" content="http://localhost:4000">` (or `window.__MV_CONFIG__.apiBaseUrl`),
+  and add that origin to `CORS_ORIGIN` in `backend/.env`.
+
+Menu `image` URLs in this surface are absolute (`https://api.example.com/uploads/...`) whenever the
+request reaches the backend through a different host, so photos keep working when the site and the
+API live on different domains. Values in the database remain origin-relative.
 
 Demo placards (customer app **Table Info** dialog):
 

@@ -73,11 +73,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         ipAddress: request.ip,
       });
 
+      // Cross-site hosting (e.g. Netlify frontend on a different domain) needs
+      // SameSite=None;Secure. The Bearer token in localStorage is the primary
+      // auth mechanism, so this only matters for cookie-only clients.
+      const crossSite = process.env.COOKIE_CROSS_SITE === 'true';
       reply.setCookie('access_token', token, {
         path: '/',
         httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        sameSite: crossSite ? 'none' : 'lax',
+        secure: crossSite || process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 12,
       });
 

@@ -1,0 +1,35 @@
+# Netlify site #1 — customer ordering website.
+#
+# Netlify site settings:
+#   Base directory: customer-site
+#   Build command:  node ../deploy/netlify/build-customer-site.mjs   (from this file)
+#   Publish directory: dist
+#
+# Environment variable (Site settings → Environment):
+#   API_BASE_URL = https://api.your-domain.com     # the backend origin
+#
+# Leave API_BASE_URL empty only if this site is served by the backend itself.
+
+[build]
+  command = "node ../deploy/netlify/build-customer-site.mjs"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"

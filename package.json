@@ -6,6 +6,8 @@
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build:order-site": "node deploy/netlify/build-customer-site.mjs",
+    "build:ops-site": "npm --prefix frontend run build",
     "test": "npm --prefix backend test"
   }
 }

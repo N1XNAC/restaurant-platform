@@ -10,13 +10,18 @@ guest.
 ```
 restaurant-platform/
 ├── backend/        Fastify + TypeScript + Prisma  (shared API, REST + WebSocket)
-│                   also serves the customer website and uploaded images
-├── frontend/       React 19 + Vite + Tailwind v4  (restaurant operations website)
-├── customer-site/  Vanilla HTML/CSS/JS customer ordering app (served by the backend at /)
+│                   also serves uploaded images (and the customer site in same-origin mode)
+├── customer-site/  Netlify site A — diner ordering website (plain HTML/CSS/JS)
+│                   netlify.toml + README.md, build via deploy/netlify/
+├── frontend/       Netlify site B — staff operations & statistics website
+│                   React 19 + Vite + Tailwind v4, netlify.toml + README.md
+├── deploy/
+│   └── netlify/    two build/deploy helpers + the two-site hosting guide
 ├── reference/
 │   └── maison-verbena/   the customer app's original standalone Express server, kept for reference
 ├── docs/
-│   └── API_CONTRACT.md   <- both API surfaces, share with integrators
+│   ├── API_CONTRACT.md   <- both API surfaces, share with integrators
+│   └── DEPLOYMENT.md     <- two Netlify sites + backend hosting
 └── package.json    convenience scripts
 ```
 
@@ -83,6 +88,13 @@ placards are listed in [docs/API_CONTRACT.md](docs/API_CONTRACT.md#76-running-th
 npm run dev:backend
 npm run dev:frontend
 ```
+
+### 5. Host the two websites separately
+
+Both sites can be deployed to their own Netlify site (or subdomain), with the
+backend on a host that supports WebSockets and a persistent disk. See
+**[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for the full walkthrough and the
+exact environment variables.
 
 ---
 
@@ -157,6 +169,18 @@ status mapping in both directions, and static hosting of `customer-site/`.
 
 ## Production notes
 
+* Deploy the two websites to Netlify as **two separate sites with different
+  domains**, both pointing at the same backend:
+  - **Site A — ordering** (`customer-site/`, e.g. `order.example.com`)
+  - **Site B — operations & statistics** (`frontend/`, e.g. `admin.example.com`)
+  
+  Netlify base dir, build command and env var for each are in
+  [deploy/netlify/README.md](deploy/netlify/README.md); the full walkthrough is
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Each site has its own `netlify.toml`
+  and fails the build if its API-origin variable is missing.
+* The backend needs a long-lived process, WebSockets and a persistent disk, so
+  run it on Fly.io/Render/Railway/a VPS rather than Netlify. A `backend/Dockerfile`
+  is included.
 * Change `DATABASE_URL` in `backend/.env` to a PostgreSQL connection string and set
   `provider = "postgresql"` in `backend/prisma/schema.prisma`.
 * Set a strong `JWT_SECRET`, `COOKIE_SECRET` and `SESSION_HMAC_SECRET` (used to sign customer table sessions).

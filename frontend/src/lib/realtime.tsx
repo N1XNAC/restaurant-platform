@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getStoredToken } from './api';
+import { realtimeUrl } from './endpoints';
 import { useAuth } from './auth';
 
 interface RealtimeContextValue {
@@ -38,13 +39,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
     const connect = () => {
       if (closedByUser) return;
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const token = getStoredToken() ?? '';
       const params = new URLSearchParams();
       if (token) params.set('token', token);
       if (lastSequenceRef.current > 0) params.set('lastSequence', String(lastSequenceRef.current));
 
-      ws = new WebSocket(`${protocol}//${window.location.host}/api/v1/realtime?${params.toString()}`);
+      ws = new WebSocket(realtimeUrl(params));
 
       ws.onopen = () => {
         setConnected(true);

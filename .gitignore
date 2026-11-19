@@ -13,4 +13,6 @@ backend/uploads/*
 !backend/uploads/dish-*.webp
 !backend/uploads/dish-*.jpg
 coverage/
+.netlify/
+*.tsbuildinfo
 .DS_Store
