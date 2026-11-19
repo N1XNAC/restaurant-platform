@@ -50,7 +50,8 @@ least clicking because `render.yaml` already describes the service.
 | `frontend/netlify.toml` | Netlify site B | Build command, publish dir, headers |
 | `frontend/README.md` | you | Site B host settings |
 | `frontend/src/lib/endpoints.ts` | site B | Resolves API/media/WebSocket origin |
-| `deploy/netlify/build-customer-site.mjs` | Netlify site A | Copies site, injects `API_BASE_URL` |
+| `customer-site/build.mjs` | Netlify site A | Copies site, injects `API_BASE_URL` |
+| `deploy/netlify/build-customer-site.mjs` | CLI | Wrapper so the build runs from the repo root |
 | `deploy/netlify/deploy-*.sh` | CLI | One-command deploys |
 | `deploy/netlify/README.md` | you | Two-site map |
 | `docs/DEPLOYMENT.md` | you | Full hosting walkthrough |
@@ -187,7 +188,7 @@ Create **two separate sites from the same repository**.
 | Setting | Value |
 |---|---|
 | Base directory | `customer-site` |
-| Build command | `node ../deploy/netlify/build-customer-site.mjs` |
+| Build command | `node build.mjs` |
 | Publish directory | `dist` |
 | Env var | `API_BASE_URL = https://api.your-domain.com` |
 | Domain | `order.your-domain.com` |
@@ -208,6 +209,14 @@ missing, the build fails on purpose instead of shipping a broken site.
 
 After the domains are live, make sure `CORS_ORIGIN` on Render lists **both**
 origins exactly (no trailing slash), then restart the service.
+
+### If the Netlify build says "Cannot find module ... build.mjs"
+
+The site's **base directory** is empty. Netlify then builds from the repo root.
+Set **Site configuration → Build & deploy → Build settings → Base directory** to
+`customer-site` (site A) or `frontend` (site B), clear any UI build-command
+override, and redeploy. Do not add a `netlify.toml` at the repo root — one root
+config cannot describe two sites.
 
 ---
 

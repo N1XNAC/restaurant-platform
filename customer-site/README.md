@@ -7,10 +7,17 @@ a static site.
 | Setting | Value |
 |---|---|
 | Netlify base directory | `customer-site` |
-| Build command | `node ../deploy/netlify/build-customer-site.mjs` |
+| Build command | `node build.mjs` |
 | Publish directory | `dist` |
 | Environment variable | `API_BASE_URL=https://api.your-domain.com` |
 | Suggested domain | `order.your-domain.com` |
+
+> **The Netlify base directory must be `customer-site`.** Netlify only reads
+> this site's `netlify.toml` when the base directory points here. With an empty
+> base directory it builds from the repo root and the build fails with
+> "Cannot find module ... build.mjs". Set it in Site configuration → Build &
+> deploy → Build settings → Base directory. Do not add a `netlify.toml` at the
+> repo root.
 
 `API_BASE_URL` is the **backend** origin (Fastify API + WebSocket + uploads),
 which is **not** hosted on Netlify. See [../docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md).

@@ -1,17 +1,23 @@
-# Netlify site #1 — customer ordering website.
+# Netlify site A — customer ordering website.
 #
-# Netlify site settings:
-#   Base directory: customer-site
-#   Build command:  node ../deploy/netlify/build-customer-site.mjs   (from this file)
-#   Publish directory: dist
+# REQUIRED Netlify setting:
+#   Site configuration → Build & deploy → Build settings → Base directory
+#     customer-site
 #
-# Environment variable (Site settings → Environment):
+# With the base directory set, Netlify reads THIS file, runs the build inside
+# customer-site/, and publishes customer-site/dist. The build command is
+# deliberately `node build.mjs` (no `../`): if the base directory is left empty,
+# Netlify runs from the repo root and the build stops with a clear
+# "build.mjs not found" instead of a confusing parent-path error.
+#
+# Environment variable:
 #   API_BASE_URL = https://api.your-domain.com     # the backend origin
 #
-# Leave API_BASE_URL empty only if this site is served by the backend itself.
+# Do not add a netlify.toml at the repo root: the two sites are separated by
+# their base directories.
 
 [build]
-  command = "node ../deploy/netlify/build-customer-site.mjs"
+  command = "node build.mjs"
   publish = "dist"
 
 [build.environment]

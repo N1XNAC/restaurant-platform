@@ -9,7 +9,7 @@ live on its own domain. Both talk to the same backend and the same database.
 | Audience | diners at the table | restaurant staff/managers |
 | Stack | plain HTML/CSS/JS | React 19 + Vite 6 |
 | Netlify base dir | `customer-site` | `frontend` |
-| Build command | `node ../deploy/netlify/build-customer-site.mjs` | `npm run build` |
+| Build command | `node build.mjs` | `npm run build` |
 | Publish dir | `dist` | `dist` |
 | Env var | `API_BASE_URL` | `VITE_API_BASE_URL` |
 | Example domain | `order.example.com` | `admin.example.com` |

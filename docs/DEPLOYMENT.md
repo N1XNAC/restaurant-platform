@@ -109,7 +109,7 @@ curl -i -X OPTIONS https://api.example.com/api/session/validate \
 
 1. **Add new site → Import an existing project** from the repo.
 2. **Base directory:** `customer-site`
-3. **Build command:** `node ../deploy/netlify/build-customer-site.mjs`
+3. **Build command:** `node build.mjs` (runs inside the base directory)
 4. **Publish directory:** `dist`
 5. **Environment variables:**
    - `API_BASE_URL = https://api.example.com`
@@ -119,7 +119,15 @@ curl -i -X OPTIONS https://api.example.com/api/session/validate \
 `netlify.toml` in `customer-site/` already contains the build command, SPA
 fallback and security headers, so steps 3–5 are the main thing to check.
 
-What the build script does:
+> **The base directory is mandatory.** Netlify only reads
+> `customer-site/netlify.toml` when the site's base directory is
+> `customer-site`. If it is empty, Netlify builds from the repo root, `publish`
+> resolves to `/dist`, and the build fails with a module/path error. Set it in
+> **Site configuration → Build & deploy → Build settings → Base directory**.
+> Do not add a `netlify.toml` at the repo root — the two sites are separated by
+> their base directories.
+
+What the build script (`customer-site/build.mjs`) does:
 
 - copies the untouched customer app into `customer-site/dist`
 - writes `js/runtime-config.js` containing `window.__MV_CONFIG__.apiBaseUrl`
@@ -206,6 +214,43 @@ Open <http://127.0.0.1:5000/> and <http://127.0.0.1:5001/>. The customer site
 talks to port 4000, the restaurant app logs in against `127.0.0.1:4000`, menu
 images come from `/uploads` on 4000, and realtime updates still arrive over the
 WebSocket.
+
+---
+
+## 6. Troubleshooting the Netlify builds
+
+**`Cannot find module '/opt/build/deploy/netlify/build-customer-site.mjs'`**
+(or `'/opt/build/repo/build.mjs'`)
+
+The site's **base directory is not set**. Netlify then builds from the repo
+root: `../deploy/...` escapes the checkout, and `publish = "dist"` resolves to
+`/opt/build/repo/dist`. Fix it in **Site configuration → Build & deploy → Build
+settings → Base directory**:
+
+| Site | Base directory |
+|---|---|
+| A — ordering | `customer-site` |
+| B — operations | `frontend` |
+
+Then trigger "Clear cache and deploy site". The build command comes from the
+`netlify.toml` inside that folder (`node build.mjs` for site A,
+`npm run build` for site B); leave the UI's command/publish overrides empty.
+
+**`API_BASE_URL is not set` / `VITE_API_BASE_URL is not set`**
+
+Add the variable under Site configuration → Environment variables and redeploy.
+This is intentional: without it the site would call Netlify's own domain.
+
+**The sites load but API calls fail with a CORS error**
+
+The backend's `CORS_ORIGIN` must list the exact site origins, scheme + host, no
+trailing slash. Update it on Render, then restart the service. Deploy previews
+need `CORS_ORIGIN_REGEX`.
+
+**A repo-root `netlify.toml` was added**
+
+Remove it. One repo-root config cannot describe two different sites; each site
+is defined by its own base directory + `netlify.toml`.
 
 ---
 
