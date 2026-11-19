@@ -16,13 +16,15 @@ restaurant-platform/
 ├── frontend/       Netlify site B — staff operations & statistics website
 │                   React 19 + Vite + Tailwind v4, netlify.toml + README.md
 ├── deploy/
-│   └── netlify/    two build/deploy helpers + the two-site hosting guide
+│   ├── netlify/    two build/deploy helpers + the two-site hosting guide
+│   └── github/     sync script for the two GitHub Pages site repos
 ├── reference/
 │   └── maison-verbena/   the customer app's original standalone Express server, kept for reference
 ├── render.yaml     Render blueprint for the backend (Docker + /data disk)
 ├── docs/
 │   ├── API_CONTRACT.md   <- both API surfaces, share with integrators
 │   ├── DEPLOYMENT.md     <- two Netlify sites + backend hosting
+│   ├── GITHUB-PAGES.md   <- GitHub Pages setup for both sites
 │   └── HOSTING-SETUP.md  <- what to sign up for, step by step (Render, optional Supabase)
 └── package.json    convenience scripts
 ```
@@ -183,6 +185,8 @@ status mapping in both directions, and static hosting of `customer-site/`.
 * For the backend, `render.yaml` deploys it to Render in one click (Docker +
   persistent disk). Step-by-step, including the optional Supabase Postgres
   switch: [docs/HOSTING-SETUP.md](docs/HOSTING-SETUP.md).
+* GitHub Pages is configured as an alternative for the two websites:
+  [docs/GITHUB-PAGES.md](docs/GITHUB-PAGES.md).
 * The backend needs a long-lived process, WebSockets and a persistent disk, so
   run it on Fly.io/Render/Railway/a VPS rather than Netlify. A `backend/Dockerfile`
   is included.

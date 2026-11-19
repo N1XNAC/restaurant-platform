@@ -39,11 +39,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
+  // On a project GitHub Pages site the app lives at /<repo>/, so routes must be
+  // matched relative to that base. Vite exposes it (with a trailing slash) as
+  // import.meta.env.BASE_URL; React Router wants no trailing slash.
+  const basename = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RealtimeProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={basename}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route

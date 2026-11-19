@@ -48,12 +48,15 @@ if (rawBase) {
   apiBaseUrl = `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}`;
 }
 
-// On Netlify there is no backend on the same origin, so an empty value would
-// produce a site whose every API call 404s against the Netlify domain. Fail the
-// build loudly instead, unless the builder explicitly opts into same-origin.
-if (!apiBaseUrl && process.env.NETLIFY === 'true' && process.env.ALLOW_SAME_ORIGIN !== 'true') {
+// On a static host (Netlify, GitHub Pages) there is no backend on the same
+// origin, so an empty value would produce a site whose every API call 404s
+// against the static host. Fail the build loudly instead, unless the builder
+// explicitly opts into same-origin.
+const requiresRemoteApi =
+  process.env.NETLIFY === 'true' || process.env.GITHUB_ACTIONS === 'true';
+if (!apiBaseUrl && requiresRemoteApi && process.env.ALLOW_SAME_ORIGIN !== 'true') {
   console.error(
-    'API_BASE_URL is not set. In the Netlify site settings add:\n' +
+    'API_BASE_URL is not set. In the hosting settings add:\n' +
       '  API_BASE_URL = https://api.your-domain.com\n' +
       '(the origin of the backend that serves /api).'
   );
@@ -64,6 +67,8 @@ const SKIP = new Set([
   'dist',
   'node_modules',
   '.netlify',
+  '.github',
+  '.git',
   'netlify.toml',
   'build.mjs',
   'README.md',
