@@ -19,9 +19,11 @@ restaurant-platform/
 │   └── netlify/    two build/deploy helpers + the two-site hosting guide
 ├── reference/
 │   └── maison-verbena/   the customer app's original standalone Express server, kept for reference
+├── render.yaml     Render blueprint for the backend (Docker + /data disk)
 ├── docs/
 │   ├── API_CONTRACT.md   <- both API surfaces, share with integrators
-│   └── DEPLOYMENT.md     <- two Netlify sites + backend hosting
+│   ├── DEPLOYMENT.md     <- two Netlify sites + backend hosting
+│   └── HOSTING-SETUP.md  <- what to sign up for, step by step (Render, optional Supabase)
 └── package.json    convenience scripts
 ```
 
@@ -178,6 +180,9 @@ status mapping in both directions, and static hosting of `customer-site/`.
   [deploy/netlify/README.md](deploy/netlify/README.md); the full walkthrough is
   [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Each site has its own `netlify.toml`
   and fails the build if its API-origin variable is missing.
+* For the backend, `render.yaml` deploys it to Render in one click (Docker +
+  persistent disk). Step-by-step, including the optional Supabase Postgres
+  switch: [docs/HOSTING-SETUP.md](docs/HOSTING-SETUP.md).
 * The backend needs a long-lived process, WebSockets and a persistent disk, so
   run it on Fly.io/Render/Railway/a VPS rather than Netlify. A `backend/Dockerfile`
   is included.

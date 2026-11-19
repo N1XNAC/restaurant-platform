@@ -9,6 +9,7 @@ import websocket from '@fastify/websocket';
 import path from 'node:path';
 import fs from 'node:fs';
 import { errorHandler } from './lib/errors.js';
+import { uploadsDir } from './lib/uploads.js';
 import { authRoutes } from './routes/auth.js';
 import { realtimeRoutes } from './lib/realtime.js';
 import { tableRoutes } from './routes/tables.js';
@@ -78,11 +79,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     },
   });
 
-  const uploadsDir =
-    process.env.UPLOADS_DIR ?? path.resolve(process.cwd(), 'uploads');
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  const uploadsPath = uploadsDir();
+  fs.mkdirSync(uploadsPath, { recursive: true });
   await app.register(fastifyStatic, {
-    root: uploadsDir,
+    root: uploadsPath,
     prefix: '/uploads/',
     decorateReply: false,
   });

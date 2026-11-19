@@ -9,6 +9,7 @@ import { authenticateRequest, requireRoles, ROLES } from '../lib/rbac.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/errors.js';
 import { recordAuditLog } from '../lib/audit.js';
 import { emitRealtimeEvent } from '../lib/realtime.js';
+import { uploadsDir as uploadsDirPath } from '../lib/uploads.js';
 
 const categorySchema = z.object({
   name: z.string().min(1).max(60),
@@ -380,7 +381,7 @@ export async function menuRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const filename = `${crypto.randomUUID()}${ext}`;
-      const uploadsDir = path.resolve(process.cwd(), 'uploads');
+      const uploadsDir = uploadsDirPath();
       fs.mkdirSync(uploadsDir, { recursive: true });
       const destPath = path.join(uploadsDir, filename);
 

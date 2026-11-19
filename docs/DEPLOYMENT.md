@@ -20,7 +20,9 @@ Browser ──> admin.example.com  (restaurant app) ─┼──> api.example.co
 
 Each site is self-contained and has its own host config: `customer-site/netlify.toml`
 and `frontend/netlify.toml`. A one-page map of the two sites lives in
-[deploy/netlify/README.md](../deploy/netlify/README.md).
+[deploy/netlify/README.md](../deploy/netlify/README.md). For a checklist of what
+to sign up for (Render, optional Supabase) and the exact file each service
+uses, see [HOSTING-SETUP.md](HOSTING-SETUP.md).
 
 ---
 

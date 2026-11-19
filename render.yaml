@@ -1,0 +1,54 @@
+# Render blueprint — the shared backend API.
+#
+# Render dashboard → New → Blueprint → pick this repository. Render reads this
+# file, builds backend/Dockerfile, mounts a 1 GB persistent disk at /data and
+# creates the service.
+#
+# Before the first deploy, set CORS_ORIGIN to your two Netlify site origins
+# (Render prompts for it because it is marked `sync: false`), e.g.
+#   https://order.your-domain.com,https://admin.your-domain.com
+#
+# Notes:
+# * A persistent disk requires a paid instance type (Starter or higher).
+#   Render's free web services use an ephemeral filesystem: SQLite data and
+#   uploaded dish photos would disappear on every deploy/restart.
+# * This blueprint uses SQLite on the disk. To use PostgreSQL instead (Render
+#   Postgres or Supabase), see docs/HOSTING-SETUP.md and change the Prisma
+#   datasource provider.
+services:
+  - type: web
+    name: lumiere-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    disk:
+      name: lumiere-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/data/app.db
+      - key: UPLOADS_DIR
+        value: /data/uploads
+      # The two websites live on Netlify, not on this service.
+      - key: SERVE_CUSTOMER_SITE
+        value: "false"
+      # Render terminates TLS in front of the container.
+      - key: TRUST_PROXY
+        value: "true"
+      # Generated once by Render and kept in the dashboard.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: SESSION_HMAC_SECRET
+        generateValue: true
+      # Set manually: the exact Netlify origins (scheme + host, no trailing /).
+      - key: CORS_ORIGIN
+        sync: false
