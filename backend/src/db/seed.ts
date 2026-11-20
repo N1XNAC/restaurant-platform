@@ -235,6 +235,17 @@ const TABLE_TOKENS = [
 ];
 
 async function main() {
+  // The container can seed itself on first boot (SEED_ON_BOOT). Catalogue rows
+  // are upserted, but demo orders and reviews are inserts, so only populate a
+  // database that has never been seeded. Set SEED_FORCE=true to reseed anyway.
+  if (process.env.SEED_IF_EMPTY === 'true' && process.env.SEED_FORCE !== 'true') {
+    const existing = await prisma.restaurant.count();
+    if (existing > 0) {
+      console.log('Seed skipped: the database already contains a restaurant.');
+      return;
+    }
+  }
+
   const restaurant = await prisma.restaurant.upsert({
     where: { slug: 'bistro-lumiere' },
     update: {

@@ -25,8 +25,9 @@ RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 COPY --from=build /app/dist ./dist
+COPY docker-entrypoint.sh ./
 RUN mkdir -p /data/uploads
 EXPOSE 4000
-# `db push` keeps the SQLite schema current on boot; for a server-grade
-# deployment replace this with `prisma migrate deploy` and committed migrations.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/server.js"]
+# The entrypoint applies the SQLite schema, seeds an empty database when
+# SEED_ON_BOOT=true, then starts the API.
+CMD ["sh", "docker-entrypoint.sh"]

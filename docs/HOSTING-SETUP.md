@@ -76,13 +76,31 @@ git push -u origin main
 1. Render dashboard → **New → Blueprint** → select the repository.
 2. Render reads `render.yaml`: Docker build from `backend/`, 1 GB disk at
    `/data`, health check `/api/v1/health`.
-3. It asks for **`CORS_ORIGIN`** (the only manual value). Enter your two Netlify
-   origins exactly, comma-separated:
+3. It asks for **`CORS_ORIGIN`** (the only manual value). Enter the origins of
+   the websites that will call the API, exactly, comma-separated:
+   ```
+   https://n1xnac.github.io
+   ```
+   Both GitHub Pages sites (ordering and operations) share the
+   `https://<user>.github.io` origin, so one entry covers them. For Netlify, use
+   the two site origins instead:
    ```
    https://order.your-domain.com,https://admin.your-domain.com
    ```
    (Use the `*.netlify.app` URLs for now if you have no domain yet.)
 4. **Apply**. First deploy takes a few minutes.
+
+`render.yaml` sets `SEED_ON_BOOT=true`, so a brand-new database is filled with
+the demo restaurant during that first boot — see 3.4.
+
+Prefer the command line? The same service can be created with the API:
+
+```bash
+RENDER_API_KEY=rnd_... ./deploy/render/create-service.sh
+```
+
+It reuses an existing `lumiere-api` service, waits for the deploy and prints the
+URL.
 
 ### 3.3 Environment variables Render creates
 
@@ -92,8 +110,9 @@ git push -u origin main
 | `UPLOADS_DIR` | `/data/uploads` | dish photos on the same disk |
 | `SERVE_CUSTOMER_SITE` | `false` | the ordering site is on Netlify |
 | `TRUST_PROXY` | `true` | correct protocol/IP behind Render's TLS proxy |
+| `SEED_ON_BOOT` | `true` | fills an empty database with the demo restaurant |
 | `JWT_SECRET`, `COOKIE_SECRET`, `SESSION_HMAC_SECRET` | generated | auth + customer session signing |
-| `CORS_ORIGIN` | your two Netlify origins | browser access from both sites |
+| `CORS_ORIGIN` | your site origins | browser access from both sites |
 | `NODE_ENV` | `production` | — |
 
 `PORT` is injected by Render; the app already reads it. WebSockets work on
@@ -101,10 +120,15 @@ Render with no extra configuration.
 
 ### 3.4 Seed the demo data once
 
-Render dashboard → your service → **Shell**:
+Nothing to do on a fresh service: with `SEED_ON_BOOT=true` the container seeds
+itself on first boot, and only while the database has no restaurant. Later
+deploys leave existing data alone.
+
+To seed a service that was created with `SEED_ON_BOOT=false`, use the dashboard
+**Shell**:
 
 ```bash
-npx tsx src/db/seed.ts
+SEED_FORCE=true node dist/db/seed.js     # dist/, not src/: the image has no tsx
 ```
 
 Demo logins are then available (password `Password123!`):

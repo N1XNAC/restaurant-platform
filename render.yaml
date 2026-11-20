@@ -4,9 +4,11 @@
 # file, builds backend/Dockerfile, mounts a 1 GB persistent disk at /data and
 # creates the service.
 #
-# Before the first deploy, set CORS_ORIGIN to your two Netlify site origins
-# (Render prompts for it because it is marked `sync: false`), e.g.
-#   https://order.your-domain.com,https://admin.your-domain.com
+# Before the first deploy, set CORS_ORIGIN to the origins of the two websites
+# (Render prompts for it because it is marked `sync: false`):
+#   https://n1xnac.github.io
+# Both GitHub Pages project sites share the https://<user>.github.io origin, so
+# one entry covers them. For Netlify, list both site origins comma-separated.
 #
 # Notes:
 # * A persistent disk requires a paid instance type (Starter or higher).
@@ -36,7 +38,12 @@ services:
         value: file:/data/app.db
       - key: UPLOADS_DIR
         value: /data/uploads
-      # The two websites live on Netlify, not on this service.
+      # Seed the demo restaurant (menu, tables, staff, placards) on first boot.
+      # Only runs while the database is empty, so later deploys leave real data
+      # alone. Set to "false" to boot an empty database instead.
+      - key: SEED_ON_BOOT
+        value: "true"
+      # The two websites are static sites on GitHub Pages, not served here.
       - key: SERVE_CUSTOMER_SITE
         value: "false"
       # Render terminates TLS in front of the container.
