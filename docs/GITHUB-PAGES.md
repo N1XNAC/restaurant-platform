@@ -7,7 +7,7 @@ still runs on Render — Pages cannot host a Node process, WebSockets or SQLite.
 |---|---|---|
 | Ordering | `github.com/N1XNAC/lumiere-ordering` | `https://n1xnac.github.io/lumiere-ordering/` |
 | Operations & statistics | `github.com/N1XNAC/lumiere-ops` | `https://n1xnac.github.io/lumiere-ops/` |
-| API (source of truth) | `github.com/N1XNAC/restaurant-platform` | Render |
+| API (source of truth) | `github.com/N1XNAC/restaurant-platform` | `https://lumiere-api-oww6.onrender.com` |
 
 The monorepo stays the source of truth for both sites. The two site repos are
 deployment copies; refresh them with:
@@ -26,7 +26,7 @@ Settings → Secrets and variables → Actions → **Variables** → New variabl
 
 | Name | Value |
 |---|---|
-| `API_BASE_URL` | `https://<your-service>.onrender.com` |
+| `API_BASE_URL` | `https://lumiere-api-oww6.onrender.com` |
 
 Both builds fail without it, by design — see
 [the guard rationale](#why-the-build-fails-without-api_base_url).
