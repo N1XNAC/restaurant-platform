@@ -269,3 +269,19 @@ the API host, and the ops site should log in and show the dashboard.
 
 For deploy previews, add `CORS_ORIGIN_REGEX` on Render, e.g.
 `^https://[a-z0-9-]+--lumiere-order\.netlify\.app$`.
+
+### No payment method? free plan (ephemeral demo)
+
+Render refuses a persistent disk without billing (`402 Payment information is
+required`). The service can still run on the free plan:
+
+```bash
+RENDER_API_KEY=rnd_... RENDER_PLAN=free ./deploy/render/create-service.sh
+```
+
+Trade-offs: `/data` is container-local, so every deploy or restart starts from
+an empty SQLite file. `SEED_ON_BOOT=true` refills the demo restaurant each
+time, but orders and uploaded photos are lost; the service also sleeps after
+15 minutes idle (the first request afterwards takes ~50 s). Add a payment
+method and re-run with `RENDER_PLAN=starter` to get the disk-backed service
+from `render.yaml`.

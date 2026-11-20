@@ -7,7 +7,10 @@
 #   RENDER_OWNER_ID   workspace id      (auto-detected when the key sees one)
 #   SERVICE_NAME      lumiere-api
 #   REGION            oregon
-#   RENDER_PLAN       starter
+#   RENDER_PLAN       starter        (use "free" for a no-card, ephemeral demo:
+#                                    SQLite lives in the container and resets on
+#                                    every deploy/restart; SEED_ON_BOOT refills
+#                                    the demo data)
 #   BRANCH            master
 #   GITHUB_REPO       https://github.com/N1XNAC/restaurant-platform
 #   CORS_ORIGIN       https://n1xnac.github.io
@@ -90,17 +93,21 @@ else
         { key: "COOKIE_SECRET", generateValue: true },
         { key: "SESSION_HMAC_SECRET", generateValue: true }
       ],
-      serviceDetails: {
+      serviceDetails: ({
         runtime: "docker",
         plan: $plan,
         region: $region,
         healthCheckPath: "/api/v1/health",
-        disk: { name: "lumiere-data", mountPath: "/data", sizeGB: 1 },
         envSpecificDetails: {
           dockerfilePath: "./Dockerfile",
           dockerContext: "."
         }
       }
+      # A persistent disk requires a paid plan. On the free plan the disk is
+      # omitted; Render gives every container a writable /data for its lifetime.
+      | if $plan == "free" then .
+        else . + { disk: { name: "lumiere-data", mountPath: "/data", sizeGB: 1 } }
+        end)
     }')
 
   response=$(api POST "/services" "$payload")
@@ -129,6 +136,11 @@ else
 fi
 
 echo "dashboard: https://dashboard.render.com/web/$service_id"
+if [ "$PLAN" = "free" ]; then
+  echo "note: free plan — no persistent disk. The demo data is reseeded on every"
+  echo "      boot; orders and uploaded photos are lost on deploy or restart."
+  echo "      Add a payment method, then re-run with RENDER_PLAN=starter."
+fi
 
 # --- wait for the first deploy --------------------------------------------
 printf 'waiting for the deploy'
