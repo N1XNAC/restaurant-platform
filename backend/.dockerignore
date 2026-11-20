@@ -4,6 +4,5 @@ tests
 coverage
 prisma/dev.db
 prisma/dev.db-journal
-uploads
 .env
 .git

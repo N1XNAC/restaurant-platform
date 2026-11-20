@@ -25,6 +25,9 @@ RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 COPY --from=build /app/dist ./dist
+# Demo dish photos referenced by the seed. Copied into UPLOADS_DIR at boot when
+# missing, so a fresh disk still serves the menu images.
+COPY uploads ./demo-uploads
 COPY docker-entrypoint.sh ./
 RUN mkdir -p /data/uploads
 EXPOSE 4000
