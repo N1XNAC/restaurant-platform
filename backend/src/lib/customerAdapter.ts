@@ -10,6 +10,9 @@ import type {
   RestaurantTable,
   TableToken,
 } from '@prisma/client';
+import { resolveAssetUrl } from './assetUrl.js';
+
+export { resolveAssetUrl };
 
 /**
  * Adapter between the platform's canonical data model and the contract expected
@@ -113,28 +116,6 @@ export function fromCustomerStatus(status: string): string {
 
 export function centsToDollars(cents: number): number {
   return Math.round(cents) / 100;
-}
-
-/**
- * Turn a stored origin-relative upload path into an absolute URL.
- *
- * The customer app resolves image paths against its own origin, which breaks
- * when the site and the API are hosted on different hosts. Returning absolute
- * URLs keeps the same database values working in both same-origin and split
- * deployments.
- */
-export function resolveAssetUrl(
-  imagePath: string | null | undefined,
-  assetBaseUrl?: string
-): string {
-  if (!imagePath) return '';
-  if (/^[a-z][a-z0-9+.-]*:/i.test(imagePath) || imagePath.startsWith('//')) {
-    return imagePath;
-  }
-  if (!assetBaseUrl) return imagePath;
-  return `${assetBaseUrl.replace(/\/+$/, '')}${
-    imagePath.startsWith('/') ? imagePath : `/${imagePath}`
-  }`;
 }
 
 // ---------------------------------------------------------------------------

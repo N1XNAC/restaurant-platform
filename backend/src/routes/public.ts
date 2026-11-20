@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { BadRequestError, NotFoundError } from '../lib/errors.js';
 import { emitRealtimeEvent } from '../lib/realtime.js';
 import { createCustomerOrder, type PreparedLine } from '../lib/orderService.js';
+import { requestOrigin, resolveAssetUrl } from '../lib/assetUrl.js';
 
 const createPublicOrderSchema = z.object({
   tableId: z.string().min(1),
@@ -41,6 +42,9 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/v1/public/restaurants/:slug/menu', async (request) => {
     const { slug } = request.params as { slug: string };
     const restaurant = await resolveRestaurant(slug);
+    // Photos live on this API's origin; the site that consumes this endpoint
+    // can be hosted elsewhere, so hand out absolute URLs.
+    const assetBaseUrl = requestOrigin(request);
 
     const [categories, items] = await Promise.all([
       prisma.menuCategory.findMany({
@@ -68,6 +72,7 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
       categories,
       items: items.map((i) => ({
         ...i,
+        imageUrl: resolveAssetUrl(i.imageUrl, assetBaseUrl),
         allergens: JSON.parse(i.allergensJson) as string[],
       })),
     };

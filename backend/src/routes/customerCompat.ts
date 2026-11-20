@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ZodError } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { emitRealtimeEvent } from '../lib/realtime.js';
+import { requestOrigin } from '../lib/assetUrl.js';
 import {
   CANCELLATION_GRACE_MS,
   evaluateGeofence,
@@ -212,22 +213,6 @@ function sessionPayload(
   extra: { distanceMeters?: number | null; locationStatus?: CustomerLocationStatus } = {}
 ): CustomerSessionPayload {
   return toCustomerSession(ctx, extra);
-}
-
-/**
- * Public origin the customer site is talking to. Used to hand out absolute
- * photo URLs, which keeps working when the website and the API are hosted on
- * different domains (Netlify site + API host).
- */
-function assetOrigin(request: FastifyRequest): string {
-  const first = (value: string | string[] | undefined): string | undefined =>
-    Array.isArray(value) ? value[0] : value;
-  const proto =
-    first(request.headers['x-forwarded-proto'])?.split(',')[0]?.trim() ||
-    request.protocol ||
-    'http';
-  const host = first(request.headers['x-forwarded-host']) || request.headers.host;
-  return host ? `${proto}://${host}` : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -500,7 +485,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
       orderBy: [{ category: { sortOrder: 'asc' } }, { name: 'asc' }],
     });
 
-    const mapped = items.map((item) => toCustomerMenuItem(item, assetOrigin(request)));
+    const mapped = items.map((item) => toCustomerMenuItem(item, requestOrigin(request)));
 
     const search = (query.search ?? '').trim().toLowerCase();
     const category = (query.category ?? '').trim();
@@ -542,7 +527,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
     if (!item) {
       throw new CustomerError(404, 'MENU_ITEM_NOT_FOUND', 'Menu item not found.');
     }
-    return { item: toCustomerMenuItem(item, assetOrigin(request)) };
+    return { item: toCustomerMenuItem(item, requestOrigin(request)) };
   });
 
   // -------------------------------------------------------------------------
@@ -714,7 +699,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
       }
 
       return reply.status(result.deduplicated ? 200 : 201).send({
-        order: await serializeOrder(order, assetOrigin(request)),
+        order: await serializeOrder(order, requestOrigin(request)),
         message: result.deduplicated
           ? 'Your order was already received.'
           : 'Your order has been successfully placed!',
@@ -728,7 +713,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
     if (!order) {
       throw new CustomerError(404, 'ORDER_NOT_FOUND', 'Order record could not be found.');
     }
-    return { order: await serializeOrder(order, assetOrigin(request)) };
+    return { order: await serializeOrder(order, requestOrigin(request)) };
   });
 
   app.post(
@@ -756,7 +741,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
 
       if (order.status === 'CANCELLED') {
         const existing = await loadOrderForCustomer(orderId);
-        return { order: await serializeOrder(existing!, assetOrigin(request)) };
+        return { order: await serializeOrder(existing!, requestOrigin(request)) };
       }
 
       if (['READY', 'SERVED', 'COMPLETED', 'REJECTED'].includes(order.status)) {
@@ -798,7 +783,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
       }
 
       const updated = await loadOrderForCustomer(orderId);
-      return { order: await serializeOrder(updated!, assetOrigin(request)) };
+      return { order: await serializeOrder(updated!, requestOrigin(request)) };
     }
   );
 
@@ -830,7 +815,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
 
     return {
       orders: await Promise.all(
-        orders.map((order) => serializeOrder(order, assetOrigin(request)))
+        orders.map((order) => serializeOrder(order, requestOrigin(request)))
       ),
     };
   });
@@ -865,7 +850,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
     }
     if (order.status === target) {
       const unchanged = await loadOrderForCustomer(orderId);
-      return { order: await serializeOrder(unchanged!, assetOrigin(request)) };
+      return { order: await serializeOrder(unchanged!, requestOrigin(request)) };
     }
 
     const updated = await prisma.order.update({
@@ -894,7 +879,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
 
     await emitRealtimeEvent(order.restaurantId, 'order.updated', { order: updated });
 
-    return { order: await serializeOrder(updated, assetOrigin(request)) };
+    return { order: await serializeOrder(updated, requestOrigin(request)) };
   });
 
   // Lightweight helper used by the restaurant app to preview what the customer
@@ -907,7 +892,7 @@ export async function customerCompatRoutes(app: FastifyInstance): Promise<void> 
       throw new CustomerError(404, 'ORDER_NOT_FOUND', 'Order record could not be found.');
     }
     return {
-      order: await serializeOrder(order, assetOrigin(request)),
+      order: await serializeOrder(order, requestOrigin(request)),
       status: toCustomerStatus(order.status) as CustomerOrderStatus,
     };
   });
